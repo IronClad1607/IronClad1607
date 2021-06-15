@@ -1,6 +1,6 @@
 Hi There!
 
-Joined Github **1** years ago.
+Joined Github **2** years ago.
 
 Since then I pushed **1656** commits, opened **0** issues, submitted **31** pull requests, received **22** stars across **67** personal projects and contributed to **5** public repositories.
 
