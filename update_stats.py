@@ -1,5 +1,6 @@
 import os
 import requests
+import re
 import datetime
 
 # --- Configuration ---
@@ -157,19 +158,19 @@ print("--- Generated Markdown ---")
 print(markdown)
 
 # 6. Write to README
-with open("README.md", "r") as f:
-    content = f.read()
+with open("README.md", "r", encoding="utf-8") as f:
+    readme_content = f.read()
 
-start = ""
-end = ""
+# This regex finds everything between the markers, including newlines
+pattern = r"()(.*?)()"
 
-if start in content and end in content:
-    s_idx = content.find(start) + len(start)
-    e_idx = content.find(end)
-    new_content = content[:s_idx] + "\n" + markdown + "\n" + content[e_idx:]
-    
-    with open("README.md", "w") as f:
-        f.write(new_content)
-    print("README updated successfully.")
-else:
-    print("Markers not found in README.md")
+# The replacement string puts the markers back with the new content in between
+replacement = f"\\1\n{markdown}\n\\3"
+
+# re.DOTALL makes the dot (.) match newlines too
+new_content = re.sub(pattern, replacement, readme_content, flags=re.DOTALL)
+
+with open("README.md", "w", encoding="utf-8") as f:
+    f.write(new_content)
+
+print("README updated successfully.")
