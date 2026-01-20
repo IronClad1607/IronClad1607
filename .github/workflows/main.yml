@@ -1,26 +1,38 @@
+name: Update Lifetime Stats
+
 on:
   schedule:
-    - cron: '0 */12 * * *' # every 12 hours
-  push:
-    branches:
-      - main
+    - cron: '0 0 * * *' # Every midnight
+  workflow_dispatch:
+
 jobs:
-  publish:
+  update-readme:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Generate README.md
-      uses: teoxoy/profile-readme-stats@v1.2
-      with:
-        token: ${{ secrets.USER_TOKEN }}
-    - name: Update README.md
-      run: |
-        if [[ "$(git status --porcelain)" != "" ]]; then
-        git config user.name github-actions[bot]
-        git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-        git add .
-        git commit -m "Update README"
-        git push
-        fi
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Requests
+        run: pip install requests
+
+      - name: Run Script
+        env:
+          # If you created the secret for private stats, use secrets.PROFILE_TOKEN
+          # If you only want public stats, change this to secrets.GITHUB_TOKEN
+          GH_TOKEN: ${{ secrets.PROFILE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: python update_stats.py
+
+      - name: Commit Changes
+        run: |
+          git config --global user.name "Profile Bot"
+          git config --global user.email "bot@noreply.github.com"
+          git add README.md
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update lifetime stats" && git push)
