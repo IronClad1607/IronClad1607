@@ -1,5 +1,3 @@
-
-
 Hi There!
 
 Joined Github **7** years ago.
@@ -16,10 +14,3 @@ Most used languages across my projects:
 ![C](https://img.shields.io/static/v1?style=flat-square&label=%E2%A0%80&color=555&labelColor=%23555555&message=C%EF%B8%B13.4%25)
 ![C++](https://img.shields.io/static/v1?style=flat-square&label=%E2%A0%80&color=555&labelColor=%23f34b7d&message=C++%EF%B8%B12.7%25)
 ![Makefile](https://img.shields.io/static/v1?style=flat-square&label=%E2%A0%80&color=555&labelColor=%23427819&message=Makefile%EF%B8%B12.5%25)
-
-
-# My Profile
-
-Welcome to my profile. Here are my stats:
-
-Thanks for visiting!
