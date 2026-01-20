@@ -72,15 +72,17 @@ for repo in user_data["repositories"]["nodes"]:
         languages[name]["size"] += size
         total_size += size
 
-# Loop through every year since you joined to get accurate "5 year" stats
+# Loop through every year
 for year in range(created_at.year, now.year + 1):
-    start = f"{year}-01-01T00:00:00Z"
-    end = f"{year}-12-31T23:59:59Z"
-    if year == created_at.year: start = user_data["createdAt"]
-    if year == now.year: end = now.isoformat()
+    # RENAMED VARIABLES TO AVOID CONFLICT
+    loop_start = f"{year}-01-01T00:00:00Z"
+    loop_end = f"{year}-12-31T23:59:59Z"
+    
+    if year == created_at.year: loop_start = user_data["createdAt"]
+    if year == now.year: loop_end = now.isoformat()
     
     print(f"Fetching year {year}...")
-    data = run_query(contribution_query, {"login": USERNAME, "from": start, "to": end})["data"]["user"]["contributionsCollection"]
+    data = run_query(contribution_query, {"login": USERNAME, "from": loop_start, "to": loop_end})["data"]["user"]["contributionsCollection"]
     total_commits += data["totalCommitContributions"] + data["restrictedContributionsCount"]
     total_prs += data["totalPullRequestContributions"]
     total_issues += data["totalIssueContributions"]
@@ -111,15 +113,15 @@ Most used languages across my projects:
 with open("README.md", "r") as f:
     content = f.read()
 
-start = ""
-end = ""
+# RENAMED VARIABLES HERE TOO
+start_marker = ""
+end_marker = ""
 
-# This logic forces a clean replacement
-if start in content and end in content:
-    pre = content.split(start)[0]
-    post = content.split(end)[1]
+if start_marker in content and end_marker in content:
+    pre = content.split(start_marker)[0]
+    post = content.split(end_marker)[1]
     with open("README.md", "w") as f:
-        f.write(pre + start + "\n" + new_stats + "\n" + end + post)
-    print("Success!")
+        f.write(pre + start_marker + "\n" + new_stats + "\n" + end_marker + post)
+    print("Success! README updated.")
 else:
-    print("Error: Could not find markers in README.md")
+    print("Error: Could not find markers in README.md. Make sure you copied them exactly.")
