@@ -1,4 +1,4 @@
-<!--START_SECTION:my_stats-- >
+<!--START_SECTION:my_stats-->
 
 Hi There!
 
@@ -18,4 +18,4 @@ Most used languages across my projects:
 ![Makefile](https://img.shields.io/static/v1?style=flat-square&label=%E2%A0%80&color=555&labelColor=%23427819&message=Makefile%EF%B8%B12.5%25)
 
 
-<!--END_SECTION:my_stats-- >
+<!--END_SECTION:my_stats-->
