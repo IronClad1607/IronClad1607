@@ -1,13 +1,23 @@
 import os
 import requests
 import datetime
+import sys
 
-# 1. SETUP
+# --- Configuration ---
 GITHUB_TOKEN = os.getenv("GH_TOKEN")
 USERNAME = os.getenv("GITHUB_ACTOR")
 HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
-# 2. QUERIES
+# --- Define Markers (DO NOT CHANGE THESE) ---
+START_MARKER = ""
+END_MARKER = ""
+
+# --- Safety Check ---
+if not START_MARKER or not END_MARKER:
+    print("CRITICAL ERROR: Markers are empty. Do not modify the START_MARKER line.")
+    sys.exit(1)
+
+# --- GraphQL Queries ---
 user_query = """
 query($login: String!) {
   user(login: $login) {
@@ -45,59 +55,60 @@ def run_query(query, var):
     if request.status_code == 200: return request.json()
     else: raise Exception(f"Query failed: {request.status_code}")
 
-# 3. GET DATA
+# --- Main Logic ---
 print(f"Fetching data for {USERNAME}...")
-user_data = run_query(user_query, {"login": USERNAME})["data"]["user"]
-created_at = datetime.datetime.fromisoformat(user_data["createdAt"].replace("Z", "+00:00"))
-now = datetime.datetime.now(datetime.timezone.utc)
-years_joined = now.year - created_at.year
 
-# 4. CALCULATE STATS (LIFETIME LOOP)
-total_commits = 0
-total_prs = 0
-total_issues = 0
-total_stars = 0
-languages = {}
-total_size = 0
+try:
+    # 1. Get User Basics
+    user_data = run_query(user_query, {"login": USERNAME})["data"]["user"]
+    created_at = datetime.datetime.fromisoformat(user_data["createdAt"].replace("Z", "+00:00"))
+    now = datetime.datetime.now(datetime.timezone.utc)
+    years_joined = now.year - created_at.year
 
-# Count Repos & Languages
-total_repos = len(user_data["repositories"]["nodes"])
-for repo in user_data["repositories"]["nodes"]:
-    total_stars += repo["stargazerCount"]
-    for edge in repo["languages"]["edges"]:
-        name = edge["node"]["name"]
-        size = edge["size"]
-        color = edge["node"]["color"]
-        if name not in languages: languages[name] = {"size": 0, "color": color}
-        languages[name]["size"] += size
-        total_size += size
+    # 2. Loop through Years
+    total_commits = 0
+    total_prs = 0
+    total_issues = 0
+    total_stars = 0
+    languages = {}
+    total_size = 0
 
-# Loop through every year
-for year in range(created_at.year, now.year + 1):
-    # RENAMED VARIABLES TO AVOID CONFLICT
-    loop_start = f"{year}-01-01T00:00:00Z"
-    loop_end = f"{year}-12-31T23:59:59Z"
-    
-    if year == created_at.year: loop_start = user_data["createdAt"]
-    if year == now.year: loop_end = now.isoformat()
-    
-    print(f"Fetching year {year}...")
-    data = run_query(contribution_query, {"login": USERNAME, "from": loop_start, "to": loop_end})["data"]["user"]["contributionsCollection"]
-    total_commits += data["totalCommitContributions"] + data["restrictedContributionsCount"]
-    total_prs += data["totalPullRequestContributions"]
-    total_issues += data["totalIssueContributions"]
+    # Process Repos
+    total_repos = len(user_data["repositories"]["nodes"])
+    for repo in user_data["repositories"]["nodes"]:
+        total_stars += repo["stargazerCount"]
+        for edge in repo["languages"]["edges"]:
+            name = edge["node"]["name"]
+            size = edge["size"]
+            color = edge["node"]["color"]
+            if name not in languages: languages[name] = {"size": 0, "color": color}
+            languages[name]["size"] += size
+            total_size += size
 
-# 5. GENERATE BADGES
-sorted_langs = sorted(languages.items(), key=lambda x: x[1]["size"], reverse=True)[:8]
-badges = ""
-for name, info in sorted_langs:
-    pct = (info["size"] / total_size) * 100 if total_size > 0 else 0
-    color = info["color"].replace("#", "") if info["color"] else "cccccc"
-    safe_name = name.replace(" ", "%20").replace("-", "--")
-    badges += f"![{name}](https://img.shields.io/static/v1?style=flat-square&label=%E2%A0%80&color=555&labelColor=%23{color}&message={safe_name}%EF%B8%B1{pct:.1f}%25)\n"
+    # Process Stats per Year
+    for year in range(created_at.year, now.year + 1):
+        loop_start = f"{year}-01-01T00:00:00Z"
+        loop_end = f"{year}-12-31T23:59:59Z"
+        if year == created_at.year: loop_start = user_data["createdAt"]
+        if year == now.year: loop_end = now.isoformat()
+        
+        print(f"Fetching year {year}...")
+        data = run_query(contribution_query, {"login": USERNAME, "from": loop_start, "to": loop_end})["data"]["user"]["contributionsCollection"]
+        total_commits += data["totalCommitContributions"] + data["restrictedContributionsCount"]
+        total_prs += data["totalPullRequestContributions"]
+        total_issues += data["totalIssueContributions"]
 
-# 6. GENERATE FINAL TEXT
-new_stats = f"""
+    # 3. Generate Badges
+    sorted_langs = sorted(languages.items(), key=lambda x: x[1]["size"], reverse=True)[:8]
+    badges = ""
+    for name, info in sorted_langs:
+        pct = (info["size"] / total_size) * 100 if total_size > 0 else 0
+        color = info["color"].replace("#", "") if info["color"] else "cccccc"
+        safe_name = name.replace(" ", "%20").replace("-", "--")
+        badges += f"![{name}](https://img.shields.io/static/v1?style=flat-square&label=%E2%A0%80&color=555&labelColor=%23{color}&message={safe_name}%EF%B8%B1{pct:.1f}%25)\n"
+
+    # 4. Generate Final Markdown
+    new_stats = f"""
 Hi There!
 
 Joined Github **{years_joined}** years ago.
@@ -109,19 +120,32 @@ Most used languages across my projects:
 {badges}
 """
 
-# 7. UPDATE README (CLEAN SWAP)
-with open("README.md", "r") as f:
-    content = f.read()
+    # 5. Update README
+    print("Reading README.md...")
+    with open("README.md", "r", encoding="utf-8") as f:
+        content = f.read()
 
-# RENAMED VARIABLES HERE TOO
-start_marker = ""
-end_marker = ""
+    if START_MARKER in content and END_MARKER in content:
+        print("Found markers. Updating content...")
+        # Split safely
+        parts_start = content.split(START_MARKER)
+        parts_end = content.split(END_MARKER)
+        
+        # Reconstruct: Everything before Start + Start + New Stats + End + Everything after End
+        # Note: We use rsplit on the first part and split on the last part to handle potential duplicates safely
+        pre = parts_start[0]
+        post = parts_end[-1] 
+        
+        final_content = pre + START_MARKER + "\n" + new_stats + "\n" + END_MARKER + post
+        
+        with open("README.md", "w", encoding="utf-8") as f:
+            f.write(final_content)
+        print("README updated successfully!")
+    else:
+        print("ERROR: Could not find markers in README.md")
+        print(f"Looking for: {START_MARKER}")
+        print("Please verify README.md contains these exact lines.")
 
-if start_marker in content and end_marker in content:
-    pre = content.split(start_marker)[0]
-    post = content.split(end_marker)[1]
-    with open("README.md", "w") as f:
-        f.write(pre + start_marker + "\n" + new_stats + "\n" + end_marker + post)
-    print("Success! README updated.")
-else:
-    print("Error: Could not find markers in README.md. Make sure you copied them exactly.")
+except Exception as e:
+    print(f"An error occurred: {e}")
+    sys.exit(1)
