@@ -9,8 +9,8 @@ USERNAME = os.getenv("GITHUB_ACTOR")
 HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
 # --- Define Markers (DO NOT CHANGE THESE) ---
-START_MARKER = ""
-END_MARKER = ""
+START_MARKER = "<!--START_SECTION:my_stats-- >"
+END_MARKER = "<!--END_SECTION:my_stats-- >"
 
 # --- Safety Check ---
 if not START_MARKER or not END_MARKER:
